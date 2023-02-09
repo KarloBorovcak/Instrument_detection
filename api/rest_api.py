@@ -1,29 +1,24 @@
-from flask import Flask
-from flask_restful import Resource, Api, reqparse
-import base64
+from flask import Flask, request
 
 app = Flask(__name__)
-api = Api(app)
 
-parser = reqparse.RequestParser()
-parser.add_argument('file', type=str, help='File to be uploaded')
+@app.route('/audio', methods=['GET', 'POST'])
+def get_audio():
+    if request.method == 'POST':
 
-class Receive(Resource):
-    def get(self):
-        return {'data': 'Hello World'}
+        # Get the file from post request
+        if request.content_type == 'audio/wave':
+            f = request.get_data()
 
-    def post(self):
-        args = parser.parse_args()
-        file = args['file']
-        with open("temp.wav", "wb") as wav_file:
-            decode_string = base64.b64decode(file)
-            wav_file.write(decode_string)
-            wav_file.close()
-            # model(decode_string)
-    
-        return {'Message': 'File uploaded successfully'}
+        elif request.content_type[:19] == 'multipart/form-data':
+            f = request.files['file']
+        
+        else:
+            return 'Invalid content type'
 
-api.add_resource(Receive, '/receive')
+
+        return 'OK'
+
 
 if __name__ == '__main__':
     app.run()
