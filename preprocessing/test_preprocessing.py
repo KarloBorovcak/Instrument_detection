@@ -181,6 +181,7 @@ if __name__ == "__main__":
 
 
     instruments = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]
+    
     for instrument in instruments:
         SPECTROGRAMS_SAVE_DIR = "../DataLumenDS/Processed/" + instrument + "/"
         MIN_MAX_VALUES_SAVE_DIR = "../DataLumenDS/Processed/"
