@@ -4,7 +4,7 @@ import os
 
 # Parameters
 
-K = 0.75 # Duration of each sample in seconds
+K = 1.5 # Duration of each sample in seconds
 SR = 22050 # Sample rate
 
 def split_file(data):
@@ -36,15 +36,20 @@ def split_file(data):
 
 def create_spectogram(signal):
 
-    # Extract log spectrogram
-    stft = librosa.stft(signal,
-                        n_fft=1024,
-                        hop_length=512)
-    spectrogram = np.abs(stft)
-    log_spectrogram = librosa.amplitude_to_db(spectrogram)
-    normalised_log_spectrogram = (log_spectrogram - log_spectrogram.min()) / (log_spectrogram.max() - log_spectrogram.min())
+    # Calculate Mel Spectrogram
+    n_fft = 1024
+    n_mels = 128
+    hop_length = 512
+    mel_spec = librosa.feature.melspectrogram(y=signal, sr=SR, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)
 
-    return normalised_log_spectrogram
+    # Convert Mel Spectrogram to MFCCs
+    n_mfcc = 13
+    mfccs = librosa.feature.mfcc(S=librosa.power_to_db(mel_spec), n_mfcc=n_mfcc)
+
+    # Normalize MFCCs
+    mfccs_normalized = (mfccs - np.mean(mfccs, axis=0)) / np.std(mfccs, axis=0)
+
+    return mfccs_normalized
 
 def save_spectogram(data, path):
     """ Save spectrogram of each sample of the audio file """
@@ -62,13 +67,14 @@ def save_spectogram(data, path):
 
 if __name__ == "__main__":
     # Load data
-    save = "../DataLumenDS/Processed/"
-    data = "../DataLumenDS/Dataset/IRMAS_Training_Data/"
+    SAVE_DIR = "../DataLumenDS/Processed/"
+    DATA_DIR = "../DataLumenDS/Dataset/IRMAS_Training_Data/"
     instruments = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]
 
     for instrument in instruments:
-        save_path = os.path.join(save, instrument)
-        data_path = os.path.join(data, instrument)
+        
+        save_path = os.path.join(SAVE_DIR, instrument)
+        data_path = os.path.join(DATA_DIR, instrument)
 
         for root, _, files in os.walk(data_path):
             for file in files:

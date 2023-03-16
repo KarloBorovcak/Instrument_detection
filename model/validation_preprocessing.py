@@ -3,7 +3,7 @@ import numpy as np
 
 # Parameters
 
-K = 0.75 # Duration of each sample in seconds
+K = 1.5 # Duration of each sample in seconds
 SR = 22050 # Sample rate
 
 def split_file(data):
@@ -35,15 +35,20 @@ def split_file(data):
 
 def create_spectogram(signal):
 
-    # Extract log spectrogram
-    stft = librosa.stft(signal,
-                        n_fft=1024,
-                        hop_length=512)
-    spectrogram = np.abs(stft)
-    log_spectrogram = librosa.amplitude_to_db(spectrogram)
-    normalised_log_spectrogram = (log_spectrogram - log_spectrogram.min()) / (log_spectrogram.max() - log_spectrogram.min())
+    # Calculate Mel Spectrogram
+    n_fft = 1024
+    n_mels = 128
+    hop_size = 512
+    mel_spec = librosa.feature.melspectrogram(y=signal, sr=SR, n_fft=n_fft, hop_length=hop_size, n_mels=n_mels)
 
-    return normalised_log_spectrogram
+    # Convert Mel Spectrogram to MFCCs
+    n_mfcc = 13
+    mfccs = librosa.feature.mfcc(S=librosa.power_to_db(mel_spec), n_mfcc=n_mfcc)
+
+    # Normalize MFCCs
+    mfccs_normalized = (mfccs - np.mean(mfccs, axis=0)) / np.std(mfccs, axis=0)
+
+    return mfccs_normalized
 
 
 
