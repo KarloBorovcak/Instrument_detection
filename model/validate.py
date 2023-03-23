@@ -25,21 +25,21 @@ def load_models():
     #             loaded_model.load_weights(models_path + file[:-5] + '.h5')
     #             loaded_models[file[6:9]] = loaded_model
 
-    # load json and create model
-    json_file = open('./model/modelBIG.json', 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    loaded_model = tf.keras.models.model_from_json(loaded_model_json)
-    # load weights into new model
-    loaded_model.load_weights("./model/modelBIG.h5")
-
+    # # load json and create model
+    # json_file = open('./model/modelBIG.json', 'r')
+    # loaded_model_json = json_file.read()
+    # json_file.close()
+    # loaded_model = tf.keras.models.model_from_json(loaded_model_json)
+    # # load weights into new model
+    # loaded_model.load_weights("./model/modelBIG.h5")
+    loaded_model = tf.keras.models.load_model('./model/modelBIG')
     return loaded_model
 
 def predict(model, data):
     global instruments, instrument_list
-    global precission, recall, accuracy, TP, FP, TN, FN
+    global precission, recall, accuracy, total, exacts, TP, FP, TN, FN
     # Predict
-    
+    total += 1
     pred_max = [0,0,0,0,0,0,0,0,0,0,0]    
     for signal in data:
         prediction = model.predict(np.expand_dims(signal, 0), verbose=0)
@@ -68,15 +68,23 @@ def predict(model, data):
             elif instruments[i] == 0:
                 TN += 1
             
+    if pred_max == instruments:
+        exacts += 1
     
     recall = TP / (TP + FN)
     accuracy = (TP + TN) / (TP + TN + FP + FN)
     precission = TP / (TP + FP)
+    if precission + recall == 0:
+        f1 = 0
+    f1 = 2 * (precission * recall) / (precission + recall)
+
     print("Predciton: ", pred_max)
     print("Instruments: ", instruments)
     print("RECALL: ", recall) 
     print("ACCURACY: ", accuracy)
-    print("PRECISION: ", precission)          
+    print("PRECISION: ", precission) 
+    print("F1: ", f1)         
+    print("EXACT MATCHES: ", exacts/total)
     
  
             
@@ -89,7 +97,7 @@ if __name__ == "__main__":
     
     # Load data
     path = '../DataLumenDS/Dataset/IRMAS_Validation_Data/'
-    accuracy, recall, precission, TP, FP, TN, FN = 0, 0, 0, 0, 0, 0, 0
+    accuracy, recall, precission, total, exacts, TP, FP, TN, FN = 0, 0, 0, 0, 0, 0, 0, 0, 0
     instrument_list = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]
     
     for root, _, files in os.walk(path):
