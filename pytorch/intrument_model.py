@@ -1,11 +1,10 @@
-from torch import nn, optim, save, load, stack
-from torch.utils.data import DataLoader
+from torch import nn, optim, save, load
 import pytorch_lightning as pl
-from instrument_dataset import InstrumentDataset
+import torchmetrics as metrics
 
 
 class InstrumentClassification(pl.LightningModule):
-    def __init__(self, num_classes=11):
+    def __init__(self, num_classes, learning_rate, treshold):
         super().__init__()
         self.conv1 = nn.Conv2d(1 , 32, (3, 3))
         self.maxpool = nn.MaxPool2d((3, 3), (3, 3))
@@ -21,10 +20,11 @@ class InstrumentClassification(pl.LightningModule):
         self.fc3 = nn.Linear(128, num_classes)
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU()
-        #self.accuracy = .metrics.Accuracy()
+        self.accuracy = metrics.Accuracy(task="multilabel", num_classes=num_classes, threshold=treshold)
         self.loss = nn.BCELoss()
         self.cnt = 0
         self.avg_loss = 0
+        self.learning_rate = learning_rate
 
     def forward(self, x):
         # Convolutional layers
@@ -50,48 +50,36 @@ class InstrumentClassification(pl.LightningModule):
         
         return x
 
-    
-    def training_step(self, batch, batch_idx):
+
+    def _common_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.forward(x)
         loss = self.loss(y_hat, y)
+        return loss, y_hat, y
+    
+    def training_step(self, batch, batch_idx):
+        loss, y_hat, y = self._common_step(batch, batch_idx)
+        accuracy = self.accuracy(y_hat, y)
+        self.log_dict({'train_loss': loss, 'train_acc': accuracy},
+                      prog_bar=True, logger=True, on_step=False, on_epoch=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self.forward(x)
-        loss = self.loss(y_hat, y)
+        loss, y_hat, y = self._common_step(batch, batch_idx)
+        accuracy = self.accuracy(y_hat, y)
+        self.log_dict({'val_loss': loss, 'val_acc': accuracy},
+                      prog_bar=True, logger=True, on_step=False, on_epoch=True)
+        return loss
+    
+    def test_step(self, batch, batch_idx):
+        loss, y_hat, y = self._common_step(batch, batch_idx)
+        accuracy = self.accuracy(y_hat, y)
+        self.log_dict({'test_loss': loss, 'test_acc': accuracy},
+                      prog_bar=True, logger=True, on_step=False, on_epoch=True)
         return loss
     
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=1e-3)
-    
-    def train_dataloader(self):
-        return DataLoader(InstrumentDataset('train'), batch_size=32, shuffle=True)
-    
-    # def val_dataloader(self):
-    #     return DataLoader(InstrumentDataset('val'), batch_size=32, shuffle=False)
-    
-    def test_dataloader(self):
-        return DataLoader(InstrumentDataset('test'), batch_size=32, shuffle=False)
-    
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self.forward(x)
-        loss = self.loss(y_hat, y)
-        self.cnt += 1
-        self.avg_loss = loss if self.cnt == 1 else (self.avg_loss * (self.cnt - 1) + loss) / self.cnt
-        return loss
-    
-    def on_test_epoch_end(self):
-        pass
-        
-    def on_validation_epoch_end(self):
-        pass
-    
-    def on_train_epoch_end(self):
-        tensorboard_logs = {'test_loss': self.loss}
-        return {'test_loss': self.loss, 'log': tensorboard_logs}
+        return optim.Adam(self.parameters(), lr=self.learning_rate)
     
     def save(self, path):
         save(self.state_dict(), path)
@@ -99,16 +87,3 @@ class InstrumentClassification(pl.LightningModule):
     def load(self, path):
         self.load_state_dict(load(path))
 
-
-
-if __name__ == "__main__":
-    model = InstrumentClassification()
-    trainer = pl.Trainer(accelerator="cpu", max_epochs=1)
-    trainer.fit(model, model.train_dataloader())
-    trainer.test(model, model.test_dataloader())
-    model.save('model.pt')
-
-
-
-
-    
