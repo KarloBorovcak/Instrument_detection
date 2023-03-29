@@ -1,5 +1,8 @@
-import tensorflow as tf
-from tensorflow import keras
+# import tensorflow as tf
+# from tensorflow import keras
+from intrument_model import InstrumentClassification
+from torch import from_numpy
+import config
 import numpy as np
 from validation_preprocessing import create_spectogram, split_file
 import os
@@ -32,7 +35,8 @@ def load_models():
     # loaded_model = tf.keras.models.model_from_json(loaded_model_json)
     # # load weights into new model
     # loaded_model.load_weights("./model/modelBIG.h5")
-    loaded_model = tf.keras.models.load_model('./model/modelBIG')
+    model = InstrumentClassification(num_labels=config.NUM_LABELS,threshold=config.THRESHOLD, learning_rate=config.LEARNING_RATE)
+    loaded_model = model.load_from_checkpoint('./lightning_logs/version_19/checkpoints/epoch=5-step=9432.ckpt', num_labels=config.NUM_LABELS, threshold=config.THRESHOLD, learning_rate=config.LEARNING_RATE)
     return loaded_model
 
 def predict(model, data):
@@ -42,11 +46,13 @@ def predict(model, data):
     total += 1
     pred_max = [0,0,0,0,0,0,0,0,0,0,0]    
     for signal in data:
-        prediction = model.predict(np.expand_dims(signal, 0), verbose=0)
+        signal = np.resize(signal, (1, 128, 44))
+        prediction = model(from_numpy(np.expand_dims(signal, 0)))
+        prediction = prediction.detach().numpy()
         for i in range(len(prediction[0])):
             if prediction[0][i] > pred_max[i]:
                 pred_max[i] = prediction[0][i]
-                if prediction[0][i] > 0.85:
+                if prediction[0][i] > 0.55:
                     pred_max[i] = 1
                     continue
 
@@ -55,7 +61,7 @@ def predict(model, data):
     print("pred_max: ", pred_max)    
 
     for i in range(len(pred_max)):
-        if pred_max[i] > 0.85:
+        if pred_max[i] > 0.55:
             pred_max[i] = 1
             if instruments[i] == 1:
                 TP += 1
@@ -73,10 +79,14 @@ def predict(model, data):
     
     recall = TP / (TP + FN)
     accuracy = (TP + TN) / (TP + TN + FP + FN)
-    precission = TP / (TP + FP)
+    if TP + FP == 0:
+        precission = 0
+    else:
+        precission = TP / (TP + FP)
     if precission + recall == 0:
         f1 = 0
-    f1 = 2 * (precission * recall) / (precission + recall)
+    else:
+        f1 = 2 * (precission * recall) / (precission + recall)
 
     print("Predciton: ", pred_max)
     print("Instruments: ", instruments)
@@ -96,7 +106,7 @@ if __name__ == "__main__":
     model = load_models()
     
     # Load data
-    path = '../DataLumenDS/Dataset/IRMAS_Validation_Data/'
+    path = '../../DataLumenDS/Dataset/IRMAS_Validation_Data/'
     accuracy, recall, precission, total, exacts, TP, FP, TN, FN = 0, 0, 0, 0, 0, 0, 0, 0, 0
     instrument_list = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]
     

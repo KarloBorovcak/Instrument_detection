@@ -1,14 +1,14 @@
 # Training settings
-BATCH_SIZE = 32
-MIN_EPOCHS = 10
+BATCH_SIZE = 128
+MIN_EPOCHS = 5
 MAX_EPOCHS = 100
 
 # Data settings
 DATA_PATH = "./data"
 
 # Model settings
-NUM_CLASSES = 11
-TRESHOLD = 0.55
+NUM_LABELS = 11
+THRESHOLD = 0.85
 LEARNING_RATE = 0.001
 
 
