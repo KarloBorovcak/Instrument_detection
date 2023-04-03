@@ -1,10 +1,8 @@
 # import tensorflow as tf
 # from tensorflow import keras
-from intrument_model import InstrumentClassification
-from torch import from_numpy
-import config
+from torch import from_numpy, jit
 import numpy as np
-from validation_preprocessing import create_spectogram, split_file
+from preprocessingivara import create_spectogram, split_file
 import os
 
 score = 0
@@ -35,8 +33,8 @@ def load_models():
     # loaded_model = tf.keras.models.model_from_json(loaded_model_json)
     # # load weights into new model
     # loaded_model.load_weights("./model/modelBIG.h5")
-    model = InstrumentClassification(num_labels=config.NUM_LABELS,threshold=config.THRESHOLD, learning_rate=config.LEARNING_RATE)
-    loaded_model = model.load_from_checkpoint('./lightning_logs/version_19/checkpoints/epoch=5-step=9432.ckpt', num_labels=config.NUM_LABELS, threshold=config.THRESHOLD, learning_rate=config.LEARNING_RATE)
+    
+    loaded_model = jit.load('model.pt')
     return loaded_model
 
 def predict(model, data):
@@ -52,7 +50,7 @@ def predict(model, data):
         for i in range(len(prediction[0])):
             if prediction[0][i] > pred_max[i]:
                 pred_max[i] = prediction[0][i]
-                if prediction[0][i] > 0.55:
+                if prediction[0][i] > 0.85:
                     pred_max[i] = 1
                     continue
 
@@ -61,7 +59,7 @@ def predict(model, data):
     print("pred_max: ", pred_max)    
 
     for i in range(len(pred_max)):
-        if pred_max[i] > 0.55:
+        if pred_max[i] > 0.85:
             pred_max[i] = 1
             if instruments[i] == 1:
                 TP += 1
@@ -122,8 +120,7 @@ if __name__ == "__main__":
                             instruments[instrument_list.index(instrument.strip())] = 1
                 
               
-            if file_path[-3:] == "wav":
-                
+                file_path = file_path[:-4] + ".wav"                
                 # Split data
                 split_signals = split_file(file_path)
                 

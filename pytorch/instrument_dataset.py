@@ -2,31 +2,42 @@ import pytorch_lightning as pl
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch import from_numpy
 import numpy as np
+import os
 
 class InstrumentDataset(Dataset):
     def __init__(self, split, data_path):
         self.split = split
-        self.data = np.load(f'{data_path}/{split}.npy')
-        self.labels = np.load(f'{data_path}/{split}_labels.npy')
-        # self.transform = transforms.Compose([
-        #     transforms.ToTensor(),
-        # ])
+        self.data_path = data_path
+        self.instrument_list = ['cel', 'cla', 'flu', 'gac', 'gel', 'org', 'pia', 'sax', 'tru', 'vio', 'voi']
+        self.file_list = []
+        self.label_list = []
+
+        First = True
+        for instrument in self.instrument_list:
+            data_path_instrument = os.path.join(data_path, instrument)
+            temp_files = os.listdir(data_path_instrument)
+            for file in temp_files:
+                self.file_list.append(os.path.join(data_path_instrument, file))
+            temp = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            temp[self.instrument_list.index(instrument)] = 1
+            self.label_list += [temp] * len(temp_files)
+        
         
     def __len__(self):
-        return len(self.data)
+        return len(self.file_list)
     
     def transform(self, x):
         return np.resize(x, (1, 128, 44))
     
     def tensorize(self, x):
-        return from_numpy(np.ndarray.astype(x, np.float32))
+        return from_numpy(x)
     
     def __getitem__(self, idx):
-        x = self.data[idx]
-        y = self.labels[idx]
+        x = np.load(self.file_list[idx])
+        y = self.label_list[idx]
         x = self.transform(x)
         x = self.tensorize(x)
-        y = self.tensorize(y)
+        y = self.tensorize(np.ndarray.astype(np.array(y), np.float32))
         return x, y
 
 class InstrumentDataModule(pl.LightningDataModule):
@@ -36,10 +47,13 @@ class InstrumentDataModule(pl.LightningDataModule):
         self.data_path = data_path
         
     def setup(self, stage=None):
-        self.train_dataset = InstrumentDataset('train', self.data_path)
-        test_dataset_temp = InstrumentDataset('test', self.data_path)
-        size_test_val = (test_dataset_temp.__len__())//2
-        self.test_dataset, self.val_dataset = random_split(test_dataset_temp, [size_test_val + 1, size_test_val])
+        self.dataset = InstrumentDataset('train', self.data_path)
+        self.train_dataset, self.val_dataset = random_split(self.dataset, [int(self.dataset.__len__() * 0.85) + 1, int(self.dataset.__len__() * 0.15)])
+        # self.val_dataset = InstrumentDataset('test', self.data_path)
+        #size_train_val = train_dataset_temp.__len__()
+        #self.train_dataset, self.val_dataset = random_split(train_dataset_temp, [int(size_train_val * 0.85) + 1, int(size_train_val * 0.15)])
+        # size_test_val = (test_dataset_temp.__len__())//2
+        # self.test_dataset, self.val_dataset = random_split(test_dataset_temp, [size_test_val + 1, size_test_val])
         
         
     def train_dataloader(self):
@@ -48,8 +62,8 @@ class InstrumentDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
     
-    def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
+    # def test_dataloader(self):
+    #     return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
 
 

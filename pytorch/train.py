@@ -1,7 +1,7 @@
 from intrument_model import InstrumentClassification
 from instrument_dataset import InstrumentDataModule
 import pytorch_lightning as pl
-from torch import cuda
+from torch import cuda, jit
 import config
 
 
@@ -21,4 +21,6 @@ if __name__ == "__main__":
     # trainer.tune(model, dm) # hyperparameter tuning
     trainer.fit(model, dm)
     trainer.validate(model, dm)
-    trainer.test(model, dm)
+    script = model.to_torchscript()
+    jit.save(script, "model.pt")
+    #trainer.test(model, dm)
