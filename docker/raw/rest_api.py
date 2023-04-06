@@ -1,4 +1,5 @@
 from flask import Flask, request
+from prediction import predict
 
 app = Flask(__name__)
 
@@ -17,7 +18,9 @@ def get_audio():
             return 'Invalid content type'
 
 
-        return 'OK'
+        response = predict(f)
+
+        return response
 
 
 if __name__ == '__main__':

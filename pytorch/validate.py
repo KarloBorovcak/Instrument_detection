@@ -34,7 +34,7 @@ def load_models():
     # # load weights into new model
     # loaded_model.load_weights("./model/modelBIG.h5")
     
-    loaded_model = jit.load('model.pt')
+    loaded_model = jit.load('modelzubara.pt')
     return loaded_model
 
 def predict(model, data):
@@ -50,7 +50,7 @@ def predict(model, data):
         for i in range(len(prediction[0])):
             if prediction[0][i] > pred_max[i]:
                 pred_max[i] = prediction[0][i]
-                if prediction[0][i] > 0.85:
+                if prediction[0][i] > 0.8:
                     pred_max[i] = 1
                     continue
 
@@ -59,7 +59,7 @@ def predict(model, data):
     print("pred_max: ", pred_max)    
 
     for i in range(len(pred_max)):
-        if pred_max[i] > 0.85:
+        if pred_max[i] > 0.8:
             pred_max[i] = 1
             if instruments[i] == 1:
                 TP += 1
@@ -94,7 +94,6 @@ def predict(model, data):
     print("F1: ", f1)         
     print("EXACT MATCHES: ", exacts/total)
     
- 
             
     
 
@@ -132,7 +131,7 @@ if __name__ == "__main__":
                 
                 
                 # Predict
-                prediction = predict(model, np.array(spectrograms))
+                predict(model, np.array(spectrograms))
                 
             
  

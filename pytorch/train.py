@@ -19,8 +19,9 @@ if __name__ == "__main__":
                               data_path=config.DATA_PATH,)
     
     # trainer.tune(model, dm) # hyperparameter tuning
+        
     trainer.fit(model, dm)
     trainer.validate(model, dm)
     script = model.to_torchscript()
-    jit.save(script, "model.pt")
+    jit.save(script, "modelzubara.pt")
     #trainer.test(model, dm)
