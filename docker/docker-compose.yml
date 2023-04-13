@@ -1,0 +1,22 @@
+version: "3.7"
+
+services:
+  backend:
+    build: backend
+    ports:
+      - 8000:8000
+    networks:
+      - AIservice
+  frontend:
+    build: frontend
+    ports:
+      - 8501:8501
+    networks: 
+      - AIservice
+    depends_on:
+      - backend
+
+networks:
+  AIservice:
+
+    

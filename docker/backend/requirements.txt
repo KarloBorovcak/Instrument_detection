@@ -1,0 +1,7 @@
+fastapi==0.95.0
+librosa==0.10.0.post2
+numpy==1.23.5
+uvicorn==0.21.1
+python-multipart==0.0.6
+pydantic==1.10.7
+onnxruntime==1.14.1
