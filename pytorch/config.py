@@ -10,7 +10,7 @@ LEARNING_RATE = 0.001
 
 
 # Data settings
-DATA_PATH = "../DataLumenDS/Dataset/IRMAS_Training_Data/"
+DATA_PATH = "../../DataLumenDS/Processed/"
 SAVE_PATH = "../../DataLumenDS/Processed/"
 
 # Preprocessing settings

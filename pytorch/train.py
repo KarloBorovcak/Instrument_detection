@@ -7,8 +7,7 @@ import config
 
 if __name__ == "__main__":
     model = InstrumentClassification(num_labels=config.NUM_LABELS,
-                                     learning_rate=config.LEARNING_RATE,
-                                     threshold=config.THRESHOLD)
+                                     learning_rate=config.LEARNING_RATE)
     
     trainer = pl.Trainer(accelerator="gpu" if cuda.is_available() else "cpu",
                          min_epochs=config.MIN_EPOCHS,
@@ -23,5 +22,5 @@ if __name__ == "__main__":
     trainer.fit(model, dm)
     trainer.validate(model, dm)
     script = model.to_torchscript()
-    jit.save(script, "modelzubara.pt")
+    jit.save(script, "modelnew.pt")
     #trainer.test(model, dm)

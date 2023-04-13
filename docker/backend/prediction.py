@@ -49,6 +49,8 @@ def create_spectogram(signal):
 def predict(data):
     signals = split_file(data)
     loaded_model = onnxrt.InferenceSession("model.onnx")
+    loaded_model.set_providers(['CPUExecutionProvider'], [{'precision': 'float32'}])
+
 
     pred_max = [0,0,0,0,0,0,0,0,0,0,0]
     instrument_list = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]

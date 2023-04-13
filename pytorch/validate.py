@@ -1,6 +1,7 @@
 # import tensorflow as tf
 # from tensorflow import keras
-from torch import from_numpy, jit
+from torch import from_numpy
+import onnxruntime as onnxrt
 import numpy as np
 from preprocessingivara import create_spectogram, split_file
 import os
@@ -34,23 +35,25 @@ def load_models():
     # # load weights into new model
     # loaded_model.load_weights("./model/modelBIG.h5")
     
-    loaded_model = jit.load('modelzubara.pt')
+    loaded_model = onnxrt.InferenceSession("./models/model.onnx")
+    loaded_model.set_providers(['CPUExecutionProvider'], [{'precision': 'float32'}])
     return loaded_model
 
 def predict(model, data):
-    global instruments, instrument_list
+    global instruments, instrument_list, tresholds
     global precission, recall, accuracy, total, exacts, TP, FP, TN, FN
     # Predict
     total += 1
     pred_max = [0,0,0,0,0,0,0,0,0,0,0]    
     for signal in data:
         signal = np.resize(signal, (1, 128, 44))
-        prediction = model(from_numpy(np.expand_dims(signal, 0)))
-        prediction = prediction.detach().numpy()
+        onnx_inputs= {model.get_inputs()[0].name: np.expand_dims(signal, 0)}
+        prediction = model.run(None, onnx_inputs)
+        prediction = prediction[0]
         for i in range(len(prediction[0])):
             if prediction[0][i] > pred_max[i]:
                 pred_max[i] = prediction[0][i]
-                if prediction[0][i] > 0.8:
+                if prediction[0][i] > tresholds[i]:
                     pred_max[i] = 1
                     continue
 
@@ -59,7 +62,7 @@ def predict(model, data):
     print("pred_max: ", pred_max)    
 
     for i in range(len(pred_max)):
-        if pred_max[i] > 0.8:
+        if pred_max[i] > tresholds[i]:
             pred_max[i] = 1
             if instruments[i] == 1:
                 TP += 1
@@ -104,6 +107,7 @@ if __name__ == "__main__":
     
     # Load data
     path = '../../DataLumenDS/Dataset/IRMAS_Validation_Data/'
+    tresholds = [0.85, 0.85, 0.8, 0.5, 0.7, 0.7, 0.7, 0.85, 0.85, 0.8, 0.7]
     accuracy, recall, precission, total, exacts, TP, FP, TN, FN = 0, 0, 0, 0, 0, 0, 0, 0, 0
     instrument_list = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]
     
