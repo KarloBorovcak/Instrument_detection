@@ -1,27 +1,30 @@
 import librosa
 import numpy as np
 import os
+import config
 
-# Parameters
-
-K = 1 # Duration of each sample in seconds
-SR = 22050 # Sample rate
-
-X, y = [], []
-X_train, y_train = [], []
-X_test, y_test = [], []
 
 instruments = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]
 
+
+class PreProcessingPipeline:
+    def __init__(self):
+        pass
+        
+
+
+
+
+
 def split_file(data):
-    """ Split audio file into samples of length K seconds """
+    """ Split audio file into samples of length config.DURATION seconds """
     # Load data
-    y = librosa.load(data, sr=SR, mono=True)[0]
+    y = librosa.load(data, sr=config.SAMPLE_RATE, mono=True)[0]
 
 
-    num_missing_samples = (SR * K) - len(y) % (SR * K)
+    num_missing_samples = (config.SAMPLE_RATE * config.DURATION) - len(y) % (config.SAMPLE_RATE * config.DURATION)
 
-    if num_missing_samples == (SR * K):
+    if num_missing_samples == (config.SAMPLE_RATE * config.DURATION):
         num_missing_samples = 0
 
     padded_signal = np.pad(y, (num_missing_samples, 0), 'constant')
@@ -29,21 +32,14 @@ def split_file(data):
     # Split data
     # frame_length is the number of samples in each frame
     # hop_length is the number of samples between the starts of consecutive frames
-    frame_length = int(SR * K)
+    frame_length = int(config.SAMPLE_RATE * config.DURATION)
     split_signals = librosa.util.frame(padded_signal, frame_length=frame_length, hop_length=frame_length) 
                  
     return split_signals
 
 def create_spectogram(signal):
-
-    # Compute STFT
-    n_fft = 1024
-    hop_length = 512
-    # stft = librosa.stft(y=signal, n_fft=n_fft, hop_length=hop_length)
-
-    # Convert to Mel scale
-    n_mels = 128
-    mel_spec = librosa.feature.melspectrogram(y=signal, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length)
+    # Extract mel spectrogram
+    mel_spec = librosa.feature.melspectrogram(y=signal, n_mels=config.N_MELS, n_fft=config.N_FFT, hop_length=config.HOP_LENGTH)
 
     # Compress with natural logarithm
     log_mel_spec = librosa.amplitude_to_db(np.abs(mel_spec))
@@ -53,18 +49,20 @@ def create_spectogram(signal):
 
     return normalized
 
+def create_mfcc(signal):
+    pass
+
 
 noise_factor = 0.08
 def augment_data(signal):
     noise = np.random.randn(len(signal))
     noised_signal = signal + noise_factor * noise
 
-    pitch_shifted = librosa.effects.pitch_shift(signal, sr=SR, n_steps=2)
+    pitch_shifted = librosa.effects.pitch_shift(signal, sr=config.SAMPLE_RATE, n_steps=2)
 
     return [noised_signal, pitch_shifted]
 
 cnt = 0
-SKIP = 6
 def save_spectogram(data, path, instrument):
     global cnt
     """ Save spectrogram of each sample of the audio file """
@@ -74,7 +72,6 @@ def save_spectogram(data, path, instrument):
     tempy = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     tempy[instruments.index(instrument)] = 1
     
-    # if cnt%SKIP==0:
     for i, signal in enumerate(split_signals.T):
         log_spectrogram = create_spectogram(signal)
         file_name = os.path.split(data)[1]
@@ -82,20 +79,7 @@ def save_spectogram(data, path, instrument):
 
         np.save(save_path, log_spectrogram)
         
-    # else:
-    #     for i, signal in enumerate(split_signals.T):
-    #         log_spectrogram = create_spectogram(signal)
-    #         X_train.append(log_spectrogram)
-    #         y_train.append(tempy.copy())
-            # augmented_data = augment_data(signal)
-            # for j in augmented_data: # adding augmented data to train set
-            #     log_spectrogram = create_spectogram(j)
-            #     X_train.append(log_spectrogram)
-            #     y_train.append(tempy.copy())
-    
-            
-        
-
+   
 
 
 
@@ -119,16 +103,6 @@ if __name__ == "__main__":
                 # Save spectrograms
                 save_spectogram(file_path, save_path, instrument)
                 print(cnter)
-
-    # X_test = np.array(X_test)
-    # y_test = np.array(y_test)
-    # np.save("test.npy", X_test)
-    # np.save("test_labels.npy", y_test)
-    # X_train = np.array(X_train)
-    # y_train = np.array(y_train)
-    # np.save("train.npy", X_train)
-    # np.save("train_labels.npy", y_train)
-        
 
 
 

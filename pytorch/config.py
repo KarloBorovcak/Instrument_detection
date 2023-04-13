@@ -3,14 +3,15 @@ BATCH_SIZE = 32
 MIN_EPOCHS = 5
 MAX_EPOCHS = 100
 
-# Data settings
-DATA_PATH = "../../DataLumenDS/Processed/"
-
 # Model settings
 NUM_LABELS = 11
-THRESHOLD = 0.55
 LEARNING_RATE = 0.001
 
+
+
+# Data settings
+DATA_PATH = "../DataLumenDS/Dataset/IRMAS_Training_Data/"
+SAVE_PATH = "../../DataLumenDS/Processed/"
 
 # Preprocessing settings
 SAMPLE_RATE = 22050

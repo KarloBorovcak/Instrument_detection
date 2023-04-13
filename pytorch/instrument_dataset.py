@@ -49,11 +49,6 @@ class InstrumentDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         self.dataset = InstrumentDataset('train', self.data_path)
         self.train_dataset, self.val_dataset = random_split(self.dataset, [int(self.dataset.__len__() * 0.85) + 1, int(self.dataset.__len__() * 0.15)])
-        # self.val_dataset = InstrumentDataset('test', self.data_path)
-        #size_train_val = train_dataset_temp.__len__()
-        #self.train_dataset, self.val_dataset = random_split(train_dataset_temp, [int(size_train_val * 0.85) + 1, int(size_train_val * 0.15)])
-        # size_test_val = (test_dataset_temp.__len__())//2
-        # self.test_dataset, self.val_dataset = random_split(test_dataset_temp, [size_test_val + 1, size_test_val])
         
         
     def train_dataloader(self):
