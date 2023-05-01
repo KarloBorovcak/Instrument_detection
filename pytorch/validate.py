@@ -10,30 +10,6 @@ score = 0
 total = 0
 
 def load_models():
-    # load json and create model
-    # loaded_models = {'cel': None, 'cla': None, 'flu': None, 'gac': None, 'gel': None, 
-    #                'org': None, 'pia': None, 'sax': None, 'tru': None, 'vio': None, 'voi': None}
-    # models_path = './model/models/'
-
-    # for root, _, files in os.walk(models_path):
-    #     for file in files:
-    #         file_path = os.path.join(root, file)
-    #         if file[-4:] == 'json':
-    #             json_file = open(file_path, 'r')
-    #             loaded_model_json = json_file.read()
-    #             json_file.close()
-    #             loaded_model = tf.keras.models.model_from_json(loaded_model_json)
-    #             # load weights into new model
-    #             loaded_model.load_weights(models_path + file[:-5] + '.h5')
-    #             loaded_models[file[6:9]] = loaded_model
-
-    # # load json and create model
-    # json_file = open('./model/modelBIG.json', 'r')
-    # loaded_model_json = json_file.read()
-    # json_file.close()
-    # loaded_model = tf.keras.models.model_from_json(loaded_model_json)
-    # # load weights into new model
-    # loaded_model.load_weights("./model/modelBIG.h5")
     
     loaded_model = onnxrt.InferenceSession("./models/model.onnx")
     loaded_model.set_providers(['CPUExecutionProvider'], [{'precision': 'float32'}])
