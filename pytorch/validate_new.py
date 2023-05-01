@@ -9,25 +9,25 @@ from preprocessingivara import create_spectogram, split_file
 
 
 class ModelLoader:
-    def __init__(self, model_path: str, provider: str = 'CPUExecutionProvider', config: dict = None):
+    def __init__(self, model_path, provider = 'CPUExecutionProvider', config: dict = None):
         self.model = onnxrt.InferenceSession(model_path)
         if config:
             self.model.set_providers([provider], [config])
         else:
             self.model.set_providers([provider])
 
-    def predict(self, data: np.ndarray) -> np.ndarray:
+    def predict(self, data):
         onnx_inputs = {self.model.get_inputs()[0].name: np.expand_dims(data, 0)}
         prediction = self.model.run(None, onnx_inputs)
         return prediction[0]
 
 
 class InstrumentClassifier:
-    def __init__(self, tresholds: List[float], instrument_list: List[str]):
+    def __init__(self, tresholds, instrument_list):
         self.tresholds = tresholds
         self.instrument_list = instrument_list
 
-    def classify(self, predictions: List[np.ndarray]) -> List[int]:
+    def classify(self, predictions):
         pred_max = [0] * len(self.tresholds)
         for prediction in predictions:
             for i, p in enumerate(prediction):
@@ -51,8 +51,7 @@ class EvaluationMetrics:
         self.TN = 0
         self.FN = 0
 
-    def evaluate(self, pred_max: List[int], instruments: List[int]):
-        self.total += 1
+    def evaluate(self, pred_max, instruments):
         if pred_max == instruments:
             self.exacts += 1
 
@@ -92,7 +91,7 @@ class EvaluationMetrics:
         return self.exacts / self.total
 
 
-def load_data(file_path: str, instrument_list: List[str]) -> Tuple[List[int], List[np.ndarray]]:
+def load_data(file_path, instrument_list):
     instruments = [0] * len(instrument_list)
     with open(file_path, "r") as f:
         data = f.readlines()
