@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile
-from prediction import predict
+from predict import predict
 
 app = FastAPI()
 

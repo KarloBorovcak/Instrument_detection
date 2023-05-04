@@ -46,9 +46,9 @@ if wavfile is not None:
                     continue
                 if cntr < 5:
                     with cols[cntr]:
-                        st.image(f"slike/{instrument}.jpg", caption=f"{instruments_name[instrument]}", width=width)
+                        st.image(f"images/{instrument}.png", caption=f"{instruments_name[instrument]}", width=width)
                         cntr += 1
                 else:
                     with cols2[cntr - 5]:
-                        st.image(f"slike/{instrument}.jpg", caption=f"{instruments_name[instrument]}", width=width)
+                        st.image(f"images/{instrument}.png", caption=f"{instruments_name[instrument]}", width=width)
                         cntr += 1
