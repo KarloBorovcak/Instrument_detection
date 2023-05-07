@@ -8,14 +8,13 @@ class DenseNet(pl.LightningModule):
     def __init__(self, num_labels, learning_rate):
         super().__init__()
         
-        preloaded = models.densenet201()
+        preloaded = models.densenet121()
         self.features = preloaded.features
         self.features.conv0 = nn.Conv2d(1, 64, 7, 2, 3)
-        self.classifier = nn.Linear(1920, num_labels, bias=True)
+        self.classifier = nn.Linear(1024, num_labels, bias=True)
         
         del preloaded
         
-    
         self.sigmoid = nn.Sigmoid()
         self.accuracy = metrics.Accuracy(task="multilabel", num_labels=num_labels)
         self.f1 = metrics.F1Score(task="multilabel", num_labels=num_labels)

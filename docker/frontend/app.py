@@ -25,7 +25,7 @@ if wavfile is not None:
         cols2 = st.columns(5)
         with cols2[2]:
             with st.spinner("Predicting..."):
-                response = requests.post("http://backend:8000/predict-instruments", headers=headers, files={"file": (wavfile.name, wavfile.read(), wavfile.type)})
+                response = requests.post("http://backend:8000/upload-file", headers=headers, files={"file": (wavfile.name, wavfile.read(), wavfile.type)})
 
         data = json.loads(response.json())
         counts = {'0': 0, '1': 0}

@@ -64,7 +64,7 @@ class EvaluationMetrics:
                     self.FN += 1
 
     def recall(self):
-        return self.TP / (self.TP + self.FN)
+        return self.TP / (self.TP + self.FN) if self.TP + self.FN != 0 else 0
 
     def hamming(self):
         return (self.TP + self.TN) / (self.TP + self.TN + self.FP + self.FN)
@@ -98,7 +98,7 @@ def load_data(file_path, instrument_list):
     file_path = file_path[:-4] + ".wav"
     # Split data
     logmel = LogMelSpectrogram()
-    audio = ProcessedAudio(file_path, logmel)
+    audio = ProcessedAudio(file_path, logmel, "")
     split_signals = audio.split_file()
 
     # Create spectrograms
@@ -115,8 +115,9 @@ if __name__ == "__main__":
     model_loader = ModelLoader(model_path)
 
     # Load data
-    path = '../../DataLumenDS/Dataset/IRMAS_Validation_Data/'
-    metrics = EvaluationMetrics()
+    path = config.VALIDATION_DATA_PATH
+    total_metrics = EvaluationMetrics()
+    instrument_metrics = {instrument: EvaluationMetrics() for instrument in config.INSTRUMENTS}
 
     for root, _, files in os.walk(path):
         for file in files:
@@ -130,12 +131,28 @@ if __name__ == "__main__":
                 pred_max = classifier.classify(spectrograms, model_loader)
 
                 # Evaluate
-                metrics.evaluate(pred_max, instruments)
+                total_metrics.evaluate(pred_max, instruments)
+
+                for i, instrument in enumerate(config.INSTRUMENTS):
+                    instrument_metrics[instrument].evaluate([pred_max[i]], [instruments[i]])
+
 
                 # Print results
-                print("Hamming score: ", metrics.hamming())
-                print("Recall: ", metrics.recall())
-                print("Precision: ", metrics.precision())
-                print("F1 score: ", metrics.f1_score())
-                print("Exact matches: ", metrics.exact_matches())
+                print("Total:")
+                print("Hamming score: ", total_metrics.hamming())
+                print("Recall: ", total_metrics.recall())
+                print("Precision: ", total_metrics.precision())
+                print("F1 score: ", total_metrics.f1_score())
+                print("Exact matches: ", total_metrics.exact_matches())
                 print("--------------------------------------")
+        
+    
+                for instrument in instrument_metrics.keys():
+                    print(f'{instrument}:')
+                    print("Hamming score: ", instrument_metrics[instrument].hamming())
+                    print("Recall: ", instrument_metrics[instrument].recall())
+                    print("Precision: ", instrument_metrics[instrument].precision())
+                    print("F1 score: ", instrument_metrics[instrument].f1_score())
+                    print("Exact matches: ", instrument_metrics[instrument].exact_matches())
+                    print("Occurences: ", instrument_metrics[instrument].TP + instrument_metrics[instrument].FN)
+                    print("--------------------------------------")

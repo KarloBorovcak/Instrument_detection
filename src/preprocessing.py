@@ -4,10 +4,11 @@ import os
 import config
 
 class ProcessedAudio:
-    def __init__(self, file_path, features, augmentation=False):
+    def __init__(self, file_path, features, instrument, augmentation=False):
         self.file_path = file_path
         self.features = features
         self.augmentation = augmentation
+        self.instrument = instrument
 
     def get_num_missing_samples(self, y):
         return (config.SAMPLE_RATE * config.DURATION) - len(y) % (config.SAMPLE_RATE * config.DURATION)
@@ -30,12 +31,30 @@ class ProcessedAudio:
         return split_signals
     
     def augment_data(self, signal):
-        pitch_shifted_up = librosa.effects.pitch_shift(signal, sr=config.SAMPLE_RATE, n_steps=config.PITCH_SHIFT)
-        pitch_shifted_down = librosa.effects.pitch_shift(signal, sr=config.SAMPLE_RATE, n_steps=-config.PITCH_SHIFT)
-        y_stretched = librosa.effects.time_stretch(signal, rate=config.STRETCH_FACTOR)
-        y_stretched = np.pad(y_stretched, (self.get_num_missing_samples(y_stretched), 0), 'constant')
-    
-        return np.stack((pitch_shifted_up, pitch_shifted_down, y_stretched), axis=1)
+        shift = np.random.uniform(config.PITCH_SHIFT[0], config.PITCH_SHIFT[1])
+        noise = np.random.uniform(config.NOISE_FACTOR[0], config.NOISE_FACTOR[1])
+        stretch = np.random.uniform(config.STRETCH_FACTOR[0], config.STRETCH_FACTOR[1])
+
+        # with_noise = signal + noise * np.random.normal(size=signal.shape[0])
+        pitch_shifted = librosa.effects.pitch_shift(signal, sr=config.SAMPLE_RATE, n_steps=shift)
+        y_stretched = librosa.effects.time_stretch(signal, rate=stretch)
+        if len(y_stretched) < len(signal):
+            y_stretched = np.pad(y_stretched, (self.get_num_missing_samples(y_stretched), 0), 'constant')
+        else:
+            y_stretched = y_stretched[:len(signal)]
+        
+        if self.instrument in config.UNDER_SAMPLED__INSTRUMENTS:
+            # augmented = signal + noise * np.random.normal(size=signal.shape[0])
+            augmented = librosa.effects.pitch_shift(signal, sr=config.SAMPLE_RATE, n_steps=shift)
+            augmented = librosa.effects.time_stretch(augmented, rate=stretch)
+            if len(augmented) < len(signal):
+                augmented = np.pad(augmented, (self.get_num_missing_samples(augmented), 0), 'constant')
+            else:
+                augmented = augmented[:len(signal)]
+        
+            return np.stack((pitch_shifted, y_stretched, augmented), axis=1)
+        else:
+            return np.stack((pitch_shifted, y_stretched), axis=1)
     
     def get_split_signals(self):
         split_signals = self.split_file()
@@ -78,6 +97,28 @@ class MFCC:
         normalized = (mfcc - mfcc.min()) / (mfcc.max() - mfcc.min())
         
         return normalized
+
+class SpectralCentroid:
+    def __init__(self, n_fft=config.N_FFT, hop_length=config.HOP_LENGTH):
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+    
+    def get_feature(self, signal):
+        spectral_centroid = librosa.feature.spectral_centroid(y=signal, sr=config.SAMPLE_RATE, n_fft=self.n_fft, hop_length=self.hop_length)
+        normalized = (spectral_centroid - spectral_centroid.min()) / (spectral_centroid.max() - spectral_centroid.min())
+        
+        return normalized
+
+class ZCR:
+    def __init__(self, frame_length=config.N_FFT, hop_length=config.HOP_LENGTH):
+        self.frame_length = frame_length
+        self.hop_length = hop_length
+    
+    def get_feature(self, signal):
+        zcr = librosa.feature.zero_crossing_rate(y=signal, frame_length=self.frame_length, hop_length=self.hop_length)
+        normalized = (zcr - zcr.min()) / (zcr.max() - zcr.min())
+        
+        return normalized
     
 
 
@@ -95,23 +136,30 @@ class PreProcessingPipeline:
     def run(self):
         for instrument in config.INSTRUMENTS:
         
-            save_path = os.path.join(config.PREPROCESSED_DATA_PATH, instrument)
-            data_path = os.path.join(config.DATA_PATH, instrument)
+            save_path = os.path.join(self.save_path, instrument)
+            data_path = os.path.join(self.data_path, instrument)
 
             for root, _, files in os.walk(data_path):
                 for file in files:
                     file_path = os.path.join(root, file)
 
-                    processed_audio = ProcessedAudio(file_path, self.feature, self.augmentation)
+                    processed_audio = ProcessedAudio(file_path, self.feature, instrument, self.augmentation)
+                    
                     split_signals = processed_audio.get_split_signals()
                     
                     for i, signal in enumerate(split_signals.T):
                         feature = self.feature.get_feature(signal)
                         self.save_preprocessed_data(feature, save_path, file, i)
-                        print(f"Saved {file} to {save_path}")
+                        
+                        print(f"Saved {file} {i}")
+            
+        
+            
                     
 
 
 if __name__ == "__main__":
-    preprocessor = PreProcessingPipeline(feature=LogMelSpectrogram(), augmentation=True, save_path=config.PREPROCESSED_DATA_PATH, data_path=config.DATA_PATH)
+    preprocessor = PreProcessingPipeline(feature=LogMelSpectrogram(), augmentation=True, 
+                                         save_path=config.PREPROCESSED_DATA_PATH, 
+                                         data_path=config.DATA_PATH)
     preprocessor.run()

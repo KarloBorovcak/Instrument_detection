@@ -17,11 +17,10 @@ if __name__ == "__main__":
                          callbacks=[pl.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=True, mode='min')])
     
     dm = InstrumentDataModule(batch_size=config.BATCH_SIZE,
-                              training_data_path=config.PREPROCESSED_DATA_PATH,
-                              validation_data_path=config.PREPROCESSED_VALIDATION_DATA_PATH)
+                              training_data_path=config.PREPROCESSED_DATA_PATH)
     
         
     trainer.fit(model, dm)
     trainer.validate(model, dm)
     dummy_input = randn(1, 1, 128, 44)
-    onnx.export(model, dummy_input, "./model/models/model_densenet_201.onnx")
+    onnx.export(model, dummy_input, "./model/models/model_densenet_121.onnx")

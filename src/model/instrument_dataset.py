@@ -39,18 +39,17 @@ class InstrumentTrainingDataset(Dataset):
         x = self.tensorize(np.ndarray.astype(np.array(x), np.float32))
         y = self.tensorize(np.ndarray.astype(np.array(y), np.float32))
         return x, y
-
+    
 
 class InstrumentDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size, training_data_path, validation_data_path):
+    def __init__(self, batch_size, training_data_path):
         super().__init__()
         self.batch_size = batch_size
         self.data_path = training_data_path
-        self.validation_data_path = validation_data_path
         
     def setup(self, stage=None):
-        temp_dataset = InstrumentTrainingDataset(self.data_path)
-        self.train_dataset, self.val_dataset = random_split(temp_dataset, [int(len(temp_dataset) * 0.85), int(len(temp_dataset) * 0.15)])
+        dataset = InstrumentTrainingDataset(self.data_path)
+        self.train_dataset, self.val_dataset = random_split(dataset, [dataset.__len__() - int(dataset.__len__() * config.VALIDATION_SPLIT), int(dataset.__len__() * config.VALIDATION_SPLIT)])
         
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=config.NUM_WORKERS)
